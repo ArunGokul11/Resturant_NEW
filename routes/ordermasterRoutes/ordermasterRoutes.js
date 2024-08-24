@@ -1,0 +1,17 @@
+// routes/ordermasterRoutes.js
+
+const express = require('express');
+const router = express.Router();
+const orderController = require('../../controller/orderMasterController/orderMasterController');
+
+router.post('', orderController.createOrder);
+router.get('/:orderId', orderController.getOrderDetails);
+router.post('/assign-driver', orderController.assignDriverToOrder);
+router.patch('/:orderId/status', orderController.updateOrderStatus);
+
+ 
+router.post('/drivers/login', orderController.loginDriver);
+router.post('/drivers/register', orderController.registerDriver);
+router.get('/drivers/availability/:isAvailable', orderController.getDriversByAvailability);
+
+module.exports = router;
