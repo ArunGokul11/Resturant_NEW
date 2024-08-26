@@ -17,7 +17,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      code: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
     }, {
+      tableName:"Customers",
       timestamps: true,
     });
 

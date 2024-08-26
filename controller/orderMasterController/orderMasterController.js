@@ -5,96 +5,202 @@ const { generateToken } = require('../../utils/driverAuth'); // Adjust the path 
 
 
 
-// Register a new driver
+// // Register a new driver
+// exports.registerDriver = async (req, res) => {
+//     const { driverName } = req.body;
+  
+//     const transaction = await sequelize.transaction(); // Start a transaction
+  
+//     try {
+//       // Check if driver already exists
+//       const existingDriver = await Driver.findOne({ where: { driverName } }, { transaction });
+//       if (existingDriver) {
+//         return res.status(400).json(responseWrapper(400, 'fail', null, 'Driver already exists'));
+//       }
+  
+//       // Create a new driver
+//       const driver = await Driver.create({ driverName }, { transaction });
+  
+//       // Generate a token for the newly registered driver
+//       const token = generateToken(driver.id);
+      
+//       // Invalidate previous tokens (if any)
+//       await DriverToken.update(
+//         { isExpired: true },
+//         {
+//           where: {
+//             driverId: driver.id,
+//             isExpired: false,
+//           },
+//           transaction,
+//         }
+//       );
+  
+//       // Store the new token
+//       await DriverToken.create({
+//         driverId: driver.id,
+//         authToken: token,
+//         authTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Token expiry set to 30 days
+//       }, { transaction });
+  
+//       // Commit the transaction
+//       await transaction.commit();
+  
+//       // Respond with the driver and token
+//       res.json(responseWrapper(200, 'success', { driver, token }, 'Driver registered successfully'));
+//     } catch (error) {
+//       // Rollback the transaction in case of an error
+//       await transaction.rollback();
+//       console.error('Registration Error:', error);
+//       res.status(500).json(responseWrapper(500, 'error', null, 'Registration failed'));
+//     }
+//   };
+
 exports.registerDriver = async (req, res) => {
-    const { driverName } = req.body;
-  
-    const transaction = await sequelize.transaction(); // Start a transaction
-  
-    try {
+  const { userName, driverName, phoneNumber, driverCode } = req.body;
+
+  if (!userName || !driverName || !phoneNumber || !driverCode) {
+      return res.status(400).json(responseWrapper(400, 'fail', null, 'All fields are required'));
+  }
+
+  const transaction = await sequelize.transaction(); // Start a transaction
+
+  try {
       // Check if driver already exists
-      const existingDriver = await Driver.findOne({ where: { driverName } }, { transaction });
+      const existingDriver = await Driver.findOne({ where: { driverCode } }, { transaction });
       if (existingDriver) {
-        return res.status(400).json(responseWrapper(400, 'fail', null, 'Driver already exists'));
+          return res.status(400).json(responseWrapper(400, 'fail', null, 'Driver already exists'));
       }
-  
+
       // Create a new driver
-      const driver = await Driver.create({ driverName }, { transaction });
-  
+      const driver = await Driver.create({ userName, driverName, phoneNumber, driverCode }, { transaction });
+
       // Generate a token for the newly registered driver
       const token = generateToken(driver.id);
       
       // Invalidate previous tokens (if any)
       await DriverToken.update(
-        { isExpired: true },
-        {
-          where: {
-            driverId: driver.id,
-            isExpired: false,
-          },
-          transaction,
-        }
+          { isExpired: true },
+          {
+              where: {
+                  driverId: driver.id,
+                  isExpired: false,
+              },
+              transaction,
+          }
       );
-  
+
       // Store the new token
       await DriverToken.create({
-        driverId: driver.id,
-        authToken: token,
-        authTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Token expiry set to 30 days
+          driverId: driver.id,
+          authToken: token,
+          authTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Token expiry set to 30 days
       }, { transaction });
-  
+
       // Commit the transaction
       await transaction.commit();
-  
+
       // Respond with the driver and token
       res.json(responseWrapper(200, 'success', { driver, token }, 'Driver registered successfully'));
-    } catch (error) {
+  } catch (error) {
       // Rollback the transaction in case of an error
       await transaction.rollback();
       console.error('Registration Error:', error);
       res.status(500).json(responseWrapper(500, 'error', null, 'Registration failed'));
-    }
-  };
+  }
+};
+
+
+
+
+
+
+// // Driver login
+// exports.loginDriver = async (req, res) => {
+//     const { driverName } = req.body;
+  
+//     try {
+//       // Find the driver
+//       const driver = await Driver.findOne({ where: { driverName } });
+  
+//       if (!driver) {
+//         return res.status(404).json(responseWrapper(404, 'fail', null, 'Driver not found'));
+//       }
+  
+//       // Invalidate all previous tokens
+//       await DriverToken.update(
+//         { isExpired: true },
+//         {
+//           where: {
+//             driverId: driver.id,
+//             isExpired: false,
+//           },
+//         }
+//       );
+  
+//       // Generate a new token
+//       const token = generateToken(driver.id);
+  
+//       // Store the new token
+//       await DriverToken.create({
+//         driverId: driver.id,
+//         authToken: token,
+//         authTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days expiry
+//         isExpired: false,
+//       });
+  
+//       res.json(responseWrapper(200, 'success', { token }, 'Login successful'));
+//     } catch (error) {
+//       res.status(500).json(responseWrapper(500, 'error', null, 'Login failed'));
+//     }
+//   };
 
 // Driver login
 exports.loginDriver = async (req, res) => {
-    const { driverName } = req.body;
-  
-    try {
+  const { userName, phoneNumber } = req.body;
+
+  if (!userName || !phoneNumber) {
+      return res.status(400).json(responseWrapper(400, 'fail', null, 'Username and phone number are required'));
+  }
+
+  try {
       // Find the driver
-      const driver = await Driver.findOne({ where: { driverName } });
-  
+      const driver = await Driver.findOne({
+          where: { userName, phoneNumber }
+      });
+
       if (!driver) {
-        return res.status(404).json(responseWrapper(404, 'fail', null, 'Driver not found'));
+          return res.status(404).json(responseWrapper(404, 'fail', null, 'Driver not found'));
       }
-  
+
       // Invalidate all previous tokens
       await DriverToken.update(
-        { isExpired: true },
-        {
-          where: {
-            driverId: driver.id,
-            isExpired: false,
-          },
-        }
+          { isExpired: true },
+          {
+              where: {
+                  driverId: driver.id,
+                  isExpired: false,
+              },
+          }
       );
-  
+
       // Generate a new token
       const token = generateToken(driver.id);
-  
+
       // Store the new token
       await DriverToken.create({
-        driverId: driver.id,
-        authToken: token,
-        authTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days expiry
-        isExpired: false,
+          driverId: driver.id,
+          authToken: token,
+          authTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days expiry
+          isExpired: false,
       });
-  
+
       res.json(responseWrapper(200, 'success', { token }, 'Login successful'));
-    } catch (error) {
+  } catch (error) {
+      console.error('Login Error:', error);
       res.status(500).json(responseWrapper(500, 'error', null, 'Login failed'));
-    }
-  };
+  }
+};
 
 
 // Get drivers by availability
@@ -148,42 +254,67 @@ exports.getDriversByAvailability = async (req, res) => {
       res.status(500).json(responseWrapper(500, 'error', null, 'Failed to retrieve drivers'));
     }
   };
-
-
-
-
 
   exports.createOrder = async (req, res) => {
-    const { fullName, phoneNumber, address, orderItems, orderStatus } = req.body;
+    const { fullName, phoneNumber, address, code, orderItems, driverCode } = req.body;
+  
+    // Validate that the code is provided
+    if (!code) {
+      return res.status(400).json(responseWrapper(400, 'fail', null, 'Customer code is required'));
+    }
   
     const transaction = await sequelize.transaction(); // Start a transaction
   
     try {
+      let customer;
+  
+      // Check if customer exists or create a new one
+      customer = await Customer.findOne({ where: { code }, transaction });
+  
+      if (!customer) {
+        customer = await Customer.create({
+          fullName,
+          phoneNumber,
+          address,
+          code,
+        }, { transaction });
+      }
+  
+      let driver;
+  
+      // Check if a driver with the provided driverCode exists
+      if (driverCode) {
+        driver = await Driver.findOne({ where: { driverCode }, transaction });
+  
+        // Throw an error if no driver is found
+        if (!driver) {
+          throw new Error('Driver not found');
+        }
+      } else {
+        throw new Error('Driver code is required');
+      }
+  
       // Generate the next serial number for the order
       const { nextSerialNumber, completeSerialNumber } = await SerialNumberService.generateNextSerialNumber('ORDER');
-      
-      // Create a new customer
-      const customer = await Customer.create({
-        fullName,
-        phoneNumber,
-        address,
-      }, { transaction });
   
-      console.log("New Customer",customer);
       // Generate the current date for the order
       const orderDate = new Date();
   
       // Create a new order
       const order = await OrderMaster.create({
         orderNumber: completeSerialNumber,
-        orderDate, // Use the current date
-        customerId: customer.id, // Use the customer ID of the newly created customer
+        orderDate,
+        customerId: customer.id,
+        driverId: driver.id, // Set driverId if driver exists
         orderItems,
-        orderStatus,
+        orderStatus: "Processing",
       }, { transaction });
   
       // Update the serial number
       await SerialNumberService.updateSerialNumber('ORDER', nextSerialNumber);
+
+      driver.isAvailable = false; // Set to false when assigned to an order
+      await driver.save({ transaction });
   
       // Commit the transaction
       await transaction.commit();
@@ -192,14 +323,90 @@ exports.getDriversByAvailability = async (req, res) => {
     } catch (error) {
       // Rollback the transaction if any error occurs
       await transaction.rollback();
-      
+  
       // Log the error for debugging
       console.error('Error creating order:', error);
-      
+  
+      // Handle specific errors
+      if (error.message === 'Driver not found') {
+        return res.status(404).json(responseWrapper(404, 'fail', null, 'Driver not found'));
+      }
+  
+      if (error.message === 'Driver code is required') {
+        return res.status(400).json(responseWrapper(400, 'fail', null, 'Driver code is required'));
+      }
+  
+      // Handle general errors
       res.status(500).json(responseWrapper(500, 'error', null, 'Failed to create order'));
     }
   };
+  
+  
+  
+
+
  
+  // exports.createOrder = async (req, res) => {
+  //   const { fullName, phoneNumber, address, code, orderItems } = req.body;
+  
+  //   const transaction = await sequelize.transaction(); // Start a transaction
+  
+  //   try {
+  //     let customer;
+  
+  //     if (code) {
+  //       // Try to find an existing customer with the given code
+  //       customer = await Customer.findOne({ where: { code }, transaction });
+  //     }
+  
+  //     if (!customer) {
+  //       // If no customer is found, create a new one
+  //       customer = await Customer.create({
+  //         fullName,
+  //         phoneNumber,
+  //         address,
+  //         code, // Ensure code is set even if it's the same as the provided one
+  //       }, { transaction });
+  //     }
+  
+  //     console.log("Customer", customer);
+  
+  //     // Generate the next serial number for the order
+  //     const { nextSerialNumber, completeSerialNumber } = await SerialNumberService.generateNextSerialNumber('ORDER');
+  
+  //     // Generate the current date for the order
+  //     const orderDate = new Date();
+  
+  //     // Create a new order
+  //     const order = await OrderMaster.create({
+  //       orderNumber: completeSerialNumber,
+  //       orderDate, // Use the current date
+  //       customerId: customer.id, // Use the customer ID of the found or newly created customer
+  //       orderItems,
+  //       orderStatus: "Processing",
+  //     }, { transaction });
+  
+  //     // Update the serial number
+  //     await SerialNumberService.updateSerialNumber('ORDER', nextSerialNumber);
+  
+  //     // Commit the transaction
+  //     await transaction.commit();
+  
+  //     res.status(201).json(responseWrapper(201, 'success', order, 'Order created successfully'));
+  //   } catch (error) {
+  //     // Rollback the transaction if any error occurs
+  //     await transaction.rollback();
+  
+  //     // Log the error for debugging
+  //     console.error('Error creating order:', error);
+  
+  //     res.status(500).json(responseWrapper(500, 'error', null, 'Failed to create order'));
+  //   }
+  // };
+  
+
+
+
 // Assign Driver to Order
 exports.assignDriverToOrder = async (req, res) => {
     const { orderId, driverId } = req.body;
@@ -338,7 +545,7 @@ exports.updateOrderStatus = async (req, res) => {
       // If status is 'Completed', check driver availability
       if (newStatus === 'Completed' && order.driverId) {
           // Find the driver assigned to the order (using the User model)
-          const driver = await sequelize.models.User.findByPk(order.driverId, { transaction });
+          const driver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
           if (driver) {
               // Check if there are any pending orders for the driver
               const pendingOrders = await OrderMaster.count({
