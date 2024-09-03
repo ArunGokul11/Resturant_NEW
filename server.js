@@ -9,7 +9,7 @@ const customerRoutes =require('./routes/customer/customerRoutes')
 const ordermasterRoutes =require ('./routes/ordermasterRoutes/ordermasterRoutes')
 
 const app = express();
-const PORT = process.env.PORT || 3001; 
+const PORT = process.env.PORT || 5000; 
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
