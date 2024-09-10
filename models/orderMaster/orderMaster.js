@@ -25,13 +25,13 @@ module.exports = (sequelize, DataTypes) => {
       driverId: {
         type: DataTypes.INTEGER,
         references: {
-          model: 'Drivers', // Ensure this matches the model name exactly
+          model: 'Drivers', 
           key: 'id',
         },
-        allowNull: true, // Driver can be assigned later
+        allowNull: true, 
       },
       orderItems: {
-        type: DataTypes.JSONB, // Using JSONB to store an array of items
+        type: DataTypes.JSONB,
         allowNull: false,
         defaultValue: [], // Default to an empty array
       },

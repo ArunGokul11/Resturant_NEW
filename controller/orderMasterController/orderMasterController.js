@@ -6,7 +6,7 @@ const { generateToken } = require('../../utils/driverAuth'); // Adjust the path 
 
 
 
-
+//Driver Login
 exports.registerDriver = async (req, res) => {
   const { userName, driverName, phoneNumber, driverCode } = req.body;
 
@@ -60,8 +60,6 @@ exports.registerDriver = async (req, res) => {
       res.status(500).json(responseWrapper(500, 'error', null, 'Registration failed'));
   }
 };
-
-
 
 
 // Driver login
@@ -150,10 +148,6 @@ exports.getDriversByAvailability = async (req, res) => {
       res.status(500).json(responseWrapper(500, 'error', null, 'Failed to retrieve drivers'));
     }
   };
-
-
-
-
 
   
   // exports.createOrder = async (req, res) => {
@@ -244,9 +238,6 @@ exports.getDriversByAvailability = async (req, res) => {
   
   
   
-
-
- 
   exports.createOrder = async (req, res) => {
     const { fullName, phoneNumber, address, code, latitude, longitude, orderItems } = req.body;
   
@@ -427,7 +418,6 @@ exports.updateOrderStatus = async (req, res) => {
     return res.status(500).json(responseWrapper(500, 'error', null, 'Failed to update order status'));
   }
 };
-
 
   
   // Get order details
