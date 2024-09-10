@@ -15,8 +15,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // User routes
-app.use('/user', userRoutes);
-app.use('/customer', customerRoutes);
+// app.use('/user', userRoutes);
+// app.use('/customer', customerRoutes);
 app.use('/orders', ordermasterRoutes);
 
 
