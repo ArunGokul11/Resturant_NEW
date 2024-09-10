@@ -256,46 +256,32 @@ exports.getDriversByAvailability = async (req, res) => {
         customer = await Customer.create({
           fullName,
           phoneNumber,
-          address,
-          code, // Ensure code is set even if it's the same as the provided one
+          address,  
+          code, 
           latitude,
           longitude,
           location: {
             type: 'Point',
-            coordinates: [longitude, latitude], // Longitude, Latitude
+            coordinates: [longitude, latitude], 
           },
         }, { transaction });
       }
   
       console.log("Customer", customer);
-  
-      // Generate the next serial number for the order
       const { nextSerialNumber, completeSerialNumber } = await SerialNumberService.generateNextSerialNumber('ORDER');
-  
-      // Generate the current date for the order
       const orderDate = new Date();
-  
-      // Create a new order
       const order = await OrderMaster.create({
         orderNumber: completeSerialNumber,
-        orderDate, // Use the current date
-        customerId: customer.id, // Use the customer ID of the found or newly created customer
+        orderDate, 
+        customerId: customer.id, 
         orderItems,
         orderStatus: "Processing",
       }, { transaction });
-  
-      // Update the serial number
       await SerialNumberService.updateSerialNumber('ORDER', nextSerialNumber);
-  
-      // Commit the transaction
       await transaction.commit();
-  
       res.status(201).json(responseWrapper(201, 'success', order, 'Order created successfully'));
     } catch (error) {
-      // Rollback the transaction if any error occurs
       await transaction.rollback();
-  
-      // Log the error for debugging
       console.error('Error creating order:', error);
   
       res.status(500).json(responseWrapper(500, 'error', null, 'Failed to create order'));
@@ -350,7 +336,7 @@ exports.assignDriverToOrder = async (req, res) => {
 
 // Update the status of an order
 exports.updateOrderStatus = async (req, res) => {
-  const { orderId, newStatus, paymentMethod } = req.body;
+  const { orderId, newStatus, paymentMethod, amountPaid, latitude, longitude, driverName } = req.body;
 
   if (!orderId || !newStatus) {
     return res.status(400).json(responseWrapper(400, 'fail', null, 'Order ID and new status are required'));
@@ -385,20 +371,46 @@ exports.updateOrderStatus = async (req, res) => {
     if (paymentMethod) {
       order.paymentMethod = paymentMethod; // Update payment method if provided
     }
+
+    // Update amountPaid if provided
+    if (amountPaid) {
+      order.amountPaid = amountPaid;
+    }
+
     await order.save({ transaction });
+
+    // Update driver's name if provided
+    if (order.driverId && driverName) {
+      const driver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
+      if (driver) {
+        driver.driverName = driverName;
+        await driver.save({ transaction });
+      }
+    }
+
+    // If latitude and longitude are provided, update customer's location
+    if (latitude && longitude && order.customerId) {
+      const customer = await sequelize.models.Customer.findByPk(order.customerId, { transaction });
+      if (customer) {
+        customer.latitude = latitude;
+        customer.longitude = longitude;
+        customer.location = { type: 'Point', coordinates: [longitude, latitude] }; // Update location as a POINT
+        await customer.save({ transaction });
+      }
+    }
 
     // If status is 'Completed', check driver availability
     if (newStatus === 'Completed' && order.driverId) {
-      // Find the driver assigned to the order (using the User model)
+      // Find the driver assigned to the order (using the Driver model)
       const driver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
       if (driver) {
         // Check if there are any pending orders for the driver
         const pendingOrders = await OrderMaster.count({
           where: {
             driverId: driver.id,
-            orderStatus: 'Processing'
+            orderStatus: 'Processing',
           },
-          transaction
+          transaction,
         });
 
         // Update driver's availability based on remaining orders
@@ -418,6 +430,7 @@ exports.updateOrderStatus = async (req, res) => {
     return res.status(500).json(responseWrapper(500, 'error', null, 'Failed to update order status'));
   }
 };
+
 
   
   // Get order details
