@@ -379,23 +379,26 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save({ transaction });
 
+    let updatedCustomer = null;
+    let updatedDriver = null;
+
     // Update driver's name if provided
     if (order.driverId && driverName) {
-      const driver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
-      if (driver) {
-        driver.driverName = driverName;
-        await driver.save({ transaction });
+      updatedDriver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
+      if (updatedDriver) {
+        updatedDriver.driverName = driverName;
+        await updatedDriver.save({ transaction });
       }
     }
 
     // If latitude and longitude are provided, update customer's location
     if (latitude && longitude && order.customerId) {
-      const customer = await sequelize.models.Customer.findByPk(order.customerId, { transaction });
-      if (customer) {
-        customer.latitude = latitude;
-        customer.longitude = longitude;
-        customer.location = { type: 'Point', coordinates: [longitude, latitude] }; // Update location as a POINT
-        await customer.save({ transaction });
+      updatedCustomer = await sequelize.models.Customer.findByPk(order.customerId, { transaction });
+      if (updatedCustomer) {
+        updatedCustomer.latitude = latitude;
+        updatedCustomer.longitude = longitude;
+        updatedCustomer.location = { type: 'Point', coordinates: [longitude, latitude] }; // Update location as a POINT
+        await updatedCustomer.save({ transaction });
       }
     }
 
@@ -422,7 +425,26 @@ exports.updateOrderStatus = async (req, res) => {
     // Commit transaction
     await transaction.commit();
 
-    return res.json(responseWrapper(200, 'success', order, 'Order status updated successfully'));
+    // Prepare the response to include order, updated driver, and customer location details
+    const responseData = {
+      order,
+      driver: updatedDriver ? {
+        id: updatedDriver.id,
+        driverName: updatedDriver.driverName,
+        isAvailable: updatedDriver.isAvailable
+      } : null,
+      customer: updatedCustomer ? {
+        id: updatedCustomer.id,
+        fullName: updatedCustomer.fullName,
+        phoneNumber: updatedCustomer.phoneNumber,
+        address: updatedCustomer.address,
+        latitude: updatedCustomer.latitude,
+        longitude: updatedCustomer.longitude,
+        location: updatedCustomer.location
+      } : null
+    };
+
+    return res.json(responseWrapper(200, 'success', responseData, 'Order status updated successfully'));
   } catch (error) {
     // Rollback transaction in case of error
     await transaction.rollback();
@@ -430,6 +452,7 @@ exports.updateOrderStatus = async (req, res) => {
     return res.status(500).json(responseWrapper(500, 'error', null, 'Failed to update order status'));
   }
 };
+
 
 
   
