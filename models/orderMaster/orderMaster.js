@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
       customerId: {
         type: DataTypes.INTEGER,
         references: {
-          model: 'Customers', // Ensure this matches the model name exactly
+          model: 'Customers',
           key: 'id',
         },
         allowNull: false,
@@ -40,6 +40,12 @@ module.exports = (sequelize, DataTypes) => {
         values: ['Pending', 'Processing', 'Completed', 'Cancelled'],
         defaultValue: 'Pending',
         allowNull: false,
+      },
+      paymentMethod: {
+        type: DataTypes.ENUM,
+        values: ['Cash', 'Card'],
+        allowNull: false,
+        defaultValue: 'Cash', 
       },
     }, {
       timestamps: true,

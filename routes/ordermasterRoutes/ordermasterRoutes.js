@@ -10,9 +10,6 @@ router.post('/drivers/register', orderController.registerDriver);
 router.get('/drivers', orderController.getAllDrivers);
 router.get('/drivers/availability/:isAvailable', orderController.getDriversByAvailability);
 
-// Customers Routes
-router.get('/customers', orderController.getAllCustomers);
-router.post('/customers/create', orderController.createCustomer);
 
 // Order Routes
 router.post('', orderController.createOrder);

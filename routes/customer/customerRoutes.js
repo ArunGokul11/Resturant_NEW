@@ -5,19 +5,14 @@ const userAuthMiddleware = require('../../middleware/userAuthMiddleware')
 
 
 
-// Create a new customer
-router.post('/', userAuthMiddleware,customerController.createCustomer);
+// Customers Routes
+router.get('', customerController.getAllCustomers);
+router.post('/create', customerController.createCustomer);
+router.patch('/update/:id', customerController.updateCustomer);
 
-// Get all customers
-router.get('/', userAuthMiddleware,customerController.getAllCustomers);
 
-// Get a single customer by ID
-router.get('/:id', userAuthMiddleware,customerController.getCustomerById);
-
-// Update a customer by ID
-router.put('/:id',userAuthMiddleware, customerController.updateCustomer);
-
-// Delete a customer by ID
-router.delete('/:id',userAuthMiddleware, customerController.deleteCustomer);
+router.get('/id/:id', customerController.findCustomerById);
+router.get('/phone/:phoneNumber', customerController.findCustomerByPhoneNumber);
+router.get('/name/:name', customerController.findCustomerByName);
 
 module.exports = router;

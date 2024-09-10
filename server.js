@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { sequelize } = require('./models');
 const session = require('express-session');
-const userRoutes = require('./routes/user/userRoutes');
+// const userRoutes = require('./routes/user/userRoutes');
 const customerRoutes =require('./routes/customer/customerRoutes')
  
 const ordermasterRoutes =require ('./routes/ordermasterRoutes/ordermasterRoutes')
@@ -16,7 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // User routes
 // app.use('/user', userRoutes);
-// app.use('/customer', customerRoutes);
+app.use('/customer', customerRoutes);
 app.use('/orders', ordermasterRoutes);
 
 

@@ -359,65 +359,75 @@ exports.assignDriverToOrder = async (req, res) => {
 
 // Update the status of an order
 exports.updateOrderStatus = async (req, res) => {
-  const { orderId, newStatus } = req.body;
+  const { orderId, newStatus, paymentMethod } = req.body;
 
   if (!orderId || !newStatus) {
-      return res.status(400).json(responseWrapper(400, 'fail', null, 'Order ID and new status are required'));
+    return res.status(400).json(responseWrapper(400, 'fail', null, 'Order ID and new status are required'));
+  }
+
+  // Validate paymentMethod if provided
+  const validPaymentMethods = ['Cash', 'Card'];
+  if (paymentMethod && !validPaymentMethods.includes(paymentMethod)) {
+    return res.status(400).json(responseWrapper(400, 'fail', null, 'Invalid payment method'));
   }
 
   const transaction = await sequelize.transaction();
 
   try {
-      // Find the order by ID 
-      const order = await OrderMaster.findByPk(orderId, { transaction });
+    // Find the order by ID
+    const order = await OrderMaster.findByPk(orderId, { transaction });
 
-      if (!order) {
-          await transaction.rollback();
-          return res.status(404).json(responseWrapper(404, 'fail', null, `Order with ID ${orderId} not found`));
-      }
-
-      // Validate the new status
-      const validStatuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
-      if (!validStatuses.includes(newStatus)) {
-          await transaction.rollback();
-          return res.status(400).json(responseWrapper(400, 'fail', null, 'Invalid order status'));
-      }
-
-      // Update the order status
-      order.orderStatus = newStatus;
-      await order.save({ transaction });
-
-      // If status is 'Completed', check driver availability
-      if (newStatus === 'Completed' && order.driverId) {
-          // Find the driver assigned to the order (using the User model)
-          const driver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
-          if (driver) {
-              // Check if there are any pending orders for the driver
-              const pendingOrders = await OrderMaster.count({
-                  where: {
-                      driverId: driver.id,
-                      orderStatus: 'Processing'
-                  },
-                  transaction
-              });
-
-              // Update driver's availability based on remaining orders
-              driver.isAvailable = pendingOrders === 0;
-              await driver.save({ transaction });
-          }
-      }
-
-      // Commit transaction
-      await transaction.commit();
-
-      return res.json(responseWrapper(200, 'success', order, 'Order status updated successfully'));
-  } catch (error) {
-      // Rollback transaction in case of error
+    if (!order) {
       await transaction.rollback();
-      console.error('Error updating order status:', error);
-      return res.status(500).json(responseWrapper(500, 'error', null, 'Failed to update order status'));
+      return res.status(404).json(responseWrapper(404, 'fail', null, `Order with ID ${orderId} not found`));
+    }
+
+    // Validate the new status
+    const validStatuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+    if (!validStatuses.includes(newStatus)) {
+      await transaction.rollback();
+      return res.status(400).json(responseWrapper(400, 'fail', null, 'Invalid order status'));
+    }
+
+    // Update the order status and payment method if provided
+    order.orderStatus = newStatus;
+    if (paymentMethod) {
+      order.paymentMethod = paymentMethod; // Update payment method if provided
+    }
+    await order.save({ transaction });
+
+    // If status is 'Completed', check driver availability
+    if (newStatus === 'Completed' && order.driverId) {
+      // Find the driver assigned to the order (using the User model)
+      const driver = await sequelize.models.Driver.findByPk(order.driverId, { transaction });
+      if (driver) {
+        // Check if there are any pending orders for the driver
+        const pendingOrders = await OrderMaster.count({
+          where: {
+            driverId: driver.id,
+            orderStatus: 'Processing'
+          },
+          transaction
+        });
+
+        // Update driver's availability based on remaining orders
+        driver.isAvailable = pendingOrders === 0;
+        await driver.save({ transaction });
+      }
+    }
+
+    // Commit transaction
+    await transaction.commit();
+
+    return res.json(responseWrapper(200, 'success', order, 'Order status updated successfully'));
+  } catch (error) {
+    // Rollback transaction in case of error
+    await transaction.rollback();
+    console.error('Error updating order status:', error);
+    return res.status(500).json(responseWrapper(500, 'error', null, 'Failed to update order status'));
   }
 };
+
 
   
   // Get order details
@@ -449,56 +459,3 @@ exports.getOrderDetails = async (req, res) => {
       res.status(500).json(responseWrapper(500, 'error', null, 'Failed to fetch order details'));
     }
   };
-
-// Create Customer
-  exports.createCustomer = async (req, res) => {
-    const { fullName, phoneNumber,code, address, latitude, longitude } = req.body;
-  
-    const transaction = await sequelize.transaction(); // Start a transaction
-  
-    try {
-      // Create a new customer with location data
-      const customer = await Customer.create({
-        fullName,
-        phoneNumber,
-        address,
-        code,
-        latitude,
-        longitude,
-        location: {
-          type: 'Point',
-          coordinates: [longitude, latitude], // Longitude, Latitude
-        },
-      }, { transaction });
-  
-      // Commit the transaction
-      await transaction.commit();
-  
-      res.status(201).json(responseWrapper(201, 'success', customer, 'Customer created successfully'));
-    } catch (error) {
-      // Rollback the transaction if any error occurs
-      await transaction.rollback();
-  
-      // Log the error for debugging
-      console.error('Error creating customer:', error);
-  
-      res.status(500).json(responseWrapper(500, 'error', null, 'Failed to create customer'));
-    }
-  };
-
-// Get All Customers 
-  exports.getAllCustomers = async (req, res) => {
-    try {
-      // Fetch all customers from the Customer table
-      const customers = await Customer.findAll();
-  
-      // Respond with the list of customers
-      res.status(200).json(responseWrapper(200, 'success', customers, 'Customers retrieved successfully'));
-    } catch (error) {
-      // Log the error for debugging
-      console.error('Error fetching customers:', error);
-      
-      res.status(500).json(responseWrapper(500, 'error', null, 'Failed to retrieve customers'));
-    }
-  };
-  
